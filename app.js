@@ -66,7 +66,7 @@ let acIndex = -1;
 cityInput.addEventListener('input', () => {
   clearTimeout(acTimeout);
   const q = cityInput.value.trim();
-  if (q.length < 2) { hideAutocomplete(); return; }
+  if (q.length < 1) { hideAutocomplete(); return; }
   acTimeout = setTimeout(() => fetchSuggestions(q), 300);
 });
 
@@ -84,6 +84,7 @@ cityInput.addEventListener('keydown', (e) => {
     if (acIndex >= 0 && items[acIndex]) {
       items[acIndex].click();
     } else {
+      hideAutocomplete();
       handleSearch();
     }
   } else if (e.key === 'Escape') {
@@ -119,6 +120,7 @@ async function fetchSuggestions(q) {
 }
 
 function hideAutocomplete() {
+  clearTimeout(acTimeout);
   autocompleteList.classList.add('hidden');
   autocompleteList.innerHTML = '';
   acIndex = -1;
@@ -129,26 +131,39 @@ function updateActiveItem(items) {
 }
 
 // ===== EVENT LISTENERS =====
-searchBtn.addEventListener('click', () => handleSearch());
+searchBtn.addEventListener('click', () => { hideAutocomplete(); handleSearch(); });
 locationBtn.addEventListener('click', handleGeoLocation);
 
 // ===== HANDLERS =====
+let lastSearchQuery = '';
+
 async function handleSearch() {
   const city = cityInput.value.trim();
-  if (!city) return;
+  if (!city || city === lastSearchQuery) return;
+  lastSearchQuery = city;
 
   if (!isApiConfigured()) {
     renderDemo(city);
     return;
   }
 
+  hideAutocomplete();
   showLoading();
   try {
-    const geoRes = await fetch(`${GEO}/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`);
+    const geoRes = await fetch(`${GEO}/direct?q=${encodeURIComponent(city)}&limit=5&appid=${API_KEY}`);
     const geoData = await geoRes.json();
-    if (!geoData.length) throw new Error('City not found. Please try another name.');
-    const { lat, lon, name, country } = geoData[0];
-    await fetchAndRender(lat, lon, name, country);
+    if (!geoData.length) {
+      showError('City not found. Please try another name.');
+      return;
+    }
+    // Exact-ish match: first result name starts similarly
+    const best = geoData[0];
+    if (best.name.toLowerCase() === city.toLowerCase()) {
+      await fetchAndRender(best.lat, best.lon, best.name, best.country);
+    } else {
+      // Show "did you mean" with all close matches
+      showDidYouMean(city, geoData);
+    }
   } catch (err) {
     showError(err.message);
   }
@@ -417,11 +432,125 @@ function showLoading() {
   mainContent.classList.add('hidden');
 }
 
+const POPULAR_CITIES = [
+  { name: 'Delhi', country: 'IN', lat: 28.6139, lon: 77.209 },
+  { name: 'Mumbai', country: 'IN', lat: 19.076, lon: 72.8777 },
+  { name: 'London', country: 'GB', lat: 51.5074, lon: -0.1278 },
+  { name: 'New York', country: 'US', lat: 40.7128, lon: -74.006 },
+  { name: 'Tokyo', country: 'JP', lat: 35.6762, lon: 139.6503 },
+  { name: 'Dubai', country: 'AE', lat: 25.2048, lon: 55.2708 },
+];
+
+async function showPopularSuggestions() {
+  const grid = $('#suggestions-grid');
+  // Show skeleton cards immediately
+  grid.innerHTML = POPULAR_CITIES.map((c) =>
+    `<div class="suggestion-card skeleton" data-lat="${c.lat}" data-lon="${c.lon}" data-name="${c.name}" data-country="${c.country}">
+      <div class="sc-left">
+        <img src="https://openweathermap.org/img/wn/02d@2x.png" alt="weather" />
+        <div class="sc-temp">--°</div>
+      </div>
+      <div class="sc-right">
+        <div class="sc-city">${c.name}</div>
+        <div class="sc-country">${c.country}</div>
+        <div class="sc-desc">Loading...</div>
+      </div>
+      <div class="sc-details">
+        <span><i class="fas fa-droplet"></i> --%</span>
+        <span><i class="fas fa-wind"></i> -- km/h</span>
+      </div>
+    </div>`
+  ).join('');
+  attachSuggestionListeners();
+
+  if (!isApiConfigured()) return;
+
+  try {
+    const results = await Promise.all(
+      POPULAR_CITIES.map(async (c) => {
+        const res = await fetch(`${BASE}/weather?lat=${c.lat}&lon=${c.lon}&units=metric&appid=${API_KEY}`);
+        const data = await res.json();
+        return {
+          ...c,
+          temp: Math.round(data.main.temp),
+          feels: Math.round(data.main.feels_like),
+          humidity: data.main.humidity,
+          wind: Math.round(data.wind.speed * 3.6),
+          icon: data.weather[0].icon,
+          desc: data.weather[0].description,
+        };
+      })
+    );
+    grid.innerHTML = results.map((c) =>
+      `<div class="suggestion-card" data-lat="${c.lat}" data-lon="${c.lon}" data-name="${c.name}" data-country="${c.country}">
+        <div class="sc-left">
+          <img src="https://openweathermap.org/img/wn/${c.icon}@2x.png" alt="${c.desc}" />
+          <div class="sc-temp">${c.temp}°</div>
+        </div>
+        <div class="sc-right">
+          <div class="sc-city">${c.name}</div>
+          <div class="sc-country">${c.country}</div>
+          <div class="sc-desc">${c.desc}</div>
+        </div>
+        <div class="sc-details">
+          <span><i class="fas fa-droplet"></i> ${c.humidity}%</span>
+          <span><i class="fas fa-wind"></i> ${c.wind} km/h</span>
+          <span><i class="fas fa-temperature-half"></i> ${c.feels}°</span>
+        </div>
+      </div>`
+    ).join('');
+    attachSuggestionListeners();
+  } catch {
+    // keep skeleton cards clickable
+  }
+}
+
+function attachSuggestionListeners() {
+  $('#suggestions-grid').querySelectorAll('.suggestion-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const { lat, lon, name, country } = card.dataset;
+      cityInput.value = name;
+      error.classList.add('hidden');
+      showLoading();
+      fetchAndRender(parseFloat(lat), parseFloat(lon), name, country);
+    });
+  });
+}
+
+function showDidYouMean(query, matches) {
+  hideAutocomplete();
+  loading.classList.add('hidden');
+  mainContent.classList.add('hidden');
+  error.classList.remove('hidden');
+  errorMsg.textContent = `No exact match for "${query}"`;
+
+  const dym = $('#did-you-mean');
+  dym.classList.remove('hidden');
+  dym.innerHTML = `<p>Did you mean</p>` + matches.slice(0, 4).map((c) =>
+    `<span class="dym-chip" data-lat="${c.lat}" data-lon="${c.lon}" data-name="${c.name}" data-country="${c.country || ''}">${c.name}${c.state ? ', ' + c.state : ''}, ${c.country || ''}</span>`
+  ).join('');
+
+  dym.querySelectorAll('.dym-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const { lat, lon, name, country } = chip.dataset;
+      cityInput.value = name;
+      error.classList.add('hidden');
+      showLoading();
+      fetchAndRender(parseFloat(lat), parseFloat(lon), name, country);
+    });
+  });
+
+  showPopularSuggestions();
+}
+
 function showError(msg) {
+  hideAutocomplete();
   loading.classList.add('hidden');
   mainContent.classList.add('hidden');
   errorMsg.textContent = msg;
+  $('#did-you-mean').classList.add('hidden');
   error.classList.remove('hidden');
+  showPopularSuggestions();
 }
 
 function formatDateTime(date) {
@@ -450,6 +579,24 @@ function formatShortDate(ts) {
 function formatTime(date) {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
+
+// ===== THEME TOGGLE =====
+const themeBtn = $('#theme-btn');
+const themeIcon = themeBtn.querySelector('i');
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeIcon.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+  localStorage.setItem('theme', theme);
+}
+
+themeBtn.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// Apply saved theme
+applyTheme(localStorage.getItem('theme') || 'dark');
 
 // ===== INIT =====
 // Load demo data on start

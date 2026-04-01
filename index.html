@@ -29,12 +29,18 @@
           <i class="fas fa-arrow-right"></i>
         </button>
       </div>
-      <button id="location-btn" class="icon-btn" title="Use my location">
-        <i class="fas fa-location-crosshairs"></i>
-      </button>
-      <a href="https://github.com/Ghat0tkach/college-devops-assignment" target="_blank" rel="noopener" class="icon-btn" title="View on GitHub">
-        <i class="fab fa-github"></i>
-      </a>
+      <div class="header-actions">
+        <button id="location-btn" class="icon-btn" title="Use my location">
+          <i class="fas fa-location-crosshairs"></i>
+          <span>Locate</span>
+        </button>
+        <button id="theme-btn" class="icon-btn" title="Toggle light/dark mode">
+          <i class="fas fa-moon"></i>
+        </button>
+        <a href="https://github.com/Ghat0tkach/college-devops-assignment" target="_blank" rel="noopener" class="icon-btn" title="View on GitHub">
+          <i class="fab fa-github"></i>
+        </a>
+      </div>
     </header>
 
     <!-- Loading State -->
@@ -45,9 +51,16 @@
 
     <!-- Error State -->
     <div id="error" class="error-card hidden">
-      <i class="fas fa-exclamation-triangle"></i>
-      <p id="error-msg">City not found</p>
-      <button onclick="document.getElementById('error').classList.add('hidden')">Dismiss</button>
+      <div class="error-inner glass">
+        <i class="fas fa-map-marker-alt"></i>
+        <p id="error-msg">City not found</p>
+        <div id="did-you-mean" class="did-you-mean hidden"></div>
+        <button onclick="document.getElementById('error').classList.add('hidden')">Dismiss</button>
+      </div>
+      <div id="suggestions" class="suggestions">
+        <p class="suggestions-title">Or try one of these popular cities</p>
+        <div class="suggestions-grid" id="suggestions-grid"></div>
+      </div>
     </div>
 
     <!-- Main Content -->

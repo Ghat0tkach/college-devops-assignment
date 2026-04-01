@@ -19,6 +19,10 @@ A sleek, modern weather dashboard built with vanilla HTML, CSS, and JavaScript. 
 - **Air quality index** with pollutant breakdown (PM2.5, PM10, O3, NO2, SO2, CO)
 - **Sunrise/sunset arc** with animated sun position
 - **Glassmorphism UI** with floating animated background blobs
+- **Dark / Light mode** — toggle between themes, persisted in localStorage
+- **City autocomplete** — live suggestions from OpenWeatherMap Geocoding API as you type
+- **"Did you mean" suggestions** — fuzzy matching when no exact city match is found
+- **Popular cities fallback** — detailed weather cards for 6 popular cities shown on error
 - **Fully responsive** — works on mobile, tablet, and desktop
 - **Geolocation support** — fetch weather for your current location
 - **Demo mode** — works offline with sample data when API is unavailable
