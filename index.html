@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Animated background blobs -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <header>
+      <div class="logo">
+        <i class="fas fa-cloud-sun"></i>
+        <span>WeatherPulse</span>
+      </div>
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="city-input" placeholder="Search desired city..." autocomplete="off" />
+        <button id="search-btn" aria-label="Search">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+      <button id="location-btn" class="icon-btn" title="Use my location">
+        <i class="fas fa-location-crosshairs"></i>
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Fetching weather data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error-card hidden">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p id="error-msg">City not found</p>
+      <button onclick="document.getElementById('error').classList.add('hidden')">Dismiss</button>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="hidden">
+      <!-- Current Weather Hero -->
+      <section class="hero-card glass">
+        <div class="hero-left">
+          <div class="location">
+            <i class="fas fa-map-marker-alt"></i>
+            <h1 id="city-name">--</h1>
+          </div>
+          <p id="date-time" class="date-time">--</p>
+          <div class="hero-temp">
+            <img id="hero-icon" src="" alt="weather icon" class="hero-icon" />
+            <div>
+              <span id="hero-temp" class="temp-big">--</span>
+              <span class="temp-unit">&deg;C</span>
+            </div>
+          </div>
+          <p id="hero-desc" class="hero-desc">--</p>
+          <div class="hero-range">
+            <span><i class="fas fa-arrow-up"></i> <span id="temp-max">--</span>&deg;</span>
+            <span><i class="fas fa-arrow-down"></i> <span id="temp-min">--</span>&deg;</span>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="detail-grid">
+            <div class="detail-item glass-sm">
+              <i class="fas fa-droplet"></i>
+              <div>
+                <span class="detail-label">Humidity</span>
+                <span id="humidity" class="detail-value">--%</span>
+              </div>
+            </div>
+            <div class="detail-item glass-sm">
+              <i class="fas fa-wind"></i>
+              <div>
+                <span class="detail-label">Wind</span>
+                <span id="wind" class="detail-value">-- km/h</span>
+              </div>
+            </div>
+            <div class="detail-item glass-sm">
+              <i class="fas fa-eye"></i>
+              <div>
+                <span class="detail-label">Visibility</span>
+                <span id="visibility" class="detail-value">-- km</span>
+              </div>
+            </div>
+            <div class="detail-item glass-sm">
+              <i class="fas fa-gauge-high"></i>
+              <div>
+                <span class="detail-label">Pressure</span>
+                <span id="pressure" class="detail-value">-- hPa</span>
+              </div>
+            </div>
+            <div class="detail-item glass-sm">
+              <i class="fas fa-temperature-half"></i>
+              <div>
+                <span class="detail-label">Feels Like</span>
+                <span id="feels-like" class="detail-value">--&deg;</span>
+              </div>
+            </div>
+            <div class="detail-item glass-sm">
+              <i class="fas fa-sun"></i>
+              <div>
+                <span class="detail-label">UV Index</span>
+                <span id="uv-index" class="detail-value">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hourly Forecast -->
+      <section class="section-card glass">
+        <h2><i class="fas fa-clock"></i> Hourly Forecast</h2>
+        <div id="hourly-container" class="hourly-scroll"></div>
+      </section>
+
+      <!-- 5-Day Forecast -->
+      <section class="section-card glass">
+        <h2><i class="fas fa-calendar-week"></i> 5-Day Forecast</h2>
+        <div id="daily-container" class="daily-grid"></div>
+      </section>
+
+      <!-- Sunrise / Sunset + Air Quality -->
+      <section class="bottom-row">
+        <div class="sun-card glass">
+          <h2><i class="fas fa-sun"></i> Sun &amp; Moon</h2>
+          <div class="sun-visual">
+            <div class="sun-arc">
+              <div id="sun-position" class="sun-dot"></div>
+            </div>
+            <div class="sun-times">
+              <div>
+                <i class="fas fa-sunrise"></i>
+                <span id="sunrise">--:--</span>
+                <small>Sunrise</small>
+              </div>
+              <div>
+                <i class="fas fa-sunset"></i>
+                <span id="sunset">--:--</span>
+                <small>Sunset</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="aqi-card glass">
+          <h2><i class="fas fa-lungs"></i> Air Quality</h2>
+          <div class="aqi-display">
+            <div id="aqi-circle" class="aqi-circle">
+              <span id="aqi-value">--</span>
+            </div>
+            <span id="aqi-label" class="aqi-label">--</span>
+          </div>
+          <div id="aqi-components" class="aqi-components"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
