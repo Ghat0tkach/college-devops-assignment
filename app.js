@@ -58,9 +58,78 @@ function getDemoData() {
   };
 }
 
+const autocompleteList = $('#autocomplete-list');
+let acTimeout = null;
+let acIndex = -1;
+
+// ===== AUTOCOMPLETE =====
+cityInput.addEventListener('input', () => {
+  clearTimeout(acTimeout);
+  const q = cityInput.value.trim();
+  if (q.length < 2) { hideAutocomplete(); return; }
+  acTimeout = setTimeout(() => fetchSuggestions(q), 300);
+});
+
+cityInput.addEventListener('keydown', (e) => {
+  const items = autocompleteList.querySelectorAll('li');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    updateActiveItem(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    updateActiveItem(items);
+  } else if (e.key === 'Enter') {
+    if (acIndex >= 0 && items[acIndex]) {
+      items[acIndex].click();
+    } else {
+      handleSearch();
+    }
+  } else if (e.key === 'Escape') {
+    hideAutocomplete();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-box')) hideAutocomplete();
+});
+
+async function fetchSuggestions(q) {
+  if (!isApiConfigured()) { hideAutocomplete(); return; }
+  try {
+    const res = await fetch(`${GEO}/direct?q=${encodeURIComponent(q)}&limit=5&appid=${API_KEY}`);
+    const data = await res.json();
+    if (!data.length) { hideAutocomplete(); return; }
+    autocompleteList.innerHTML = data
+      .map((c, i) => `<li data-lat="${c.lat}" data-lon="${c.lon}" data-name="${c.name}" data-country="${c.country || ''}">${c.name}${c.state ? ', ' + c.state : ''}<span class="country">${c.country || ''}</span></li>`)
+      .join('');
+    acIndex = -1;
+    autocompleteList.classList.remove('hidden');
+    autocompleteList.querySelectorAll('li').forEach((li) => {
+      li.addEventListener('click', () => {
+        const { lat, lon, name, country } = li.dataset;
+        cityInput.value = name;
+        hideAutocomplete();
+        showLoading();
+        fetchAndRender(parseFloat(lat), parseFloat(lon), name, country);
+      });
+    });
+  } catch { hideAutocomplete(); }
+}
+
+function hideAutocomplete() {
+  autocompleteList.classList.add('hidden');
+  autocompleteList.innerHTML = '';
+  acIndex = -1;
+}
+
+function updateActiveItem(items) {
+  items.forEach((li, i) => li.classList.toggle('active', i === acIndex));
+}
+
 // ===== EVENT LISTENERS =====
 searchBtn.addEventListener('click', () => handleSearch());
-cityInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
 locationBtn.addEventListener('click', handleGeoLocation);
 
 // ===== HANDLERS =====

@@ -136,6 +136,7 @@ header {
 }
 
 .search-box {
+  position: relative;
   flex: 1;
   max-width: 480px;
   display: flex;
@@ -171,6 +172,44 @@ header {
   color: var(--text-dim);
 }
 
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  list-style: none;
+  background: rgba(20, 25, 45, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.autocomplete-list.hidden {
+  display: none;
+}
+
+.autocomplete-list li {
+  padding: 10px 18px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.autocomplete-list li:hover,
+.autocomplete-list li.active {
+  background: var(--surface-hover);
+}
+
+.autocomplete-list li .country {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
 #search-btn {
   background: var(--accent);
   border: none;
@@ -200,6 +239,7 @@ header {
   display: grid;
   place-items: center;
   font-size: 1.1rem;
+  text-decoration: none;
   transition: all 0.3s;
 }
 
